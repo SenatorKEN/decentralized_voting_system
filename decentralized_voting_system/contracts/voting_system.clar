@@ -57,3 +57,14 @@
     (asserts! (is-eq tx-sender (var-get contract-owner)) (err u403))
     (ok (map-set proposals { proposal-id: proposal-id }
          (merge proposal { is-active: false })))))
+
+;; Get contract owner
+(define-read-only (get-contract-owner)
+  (var-get contract-owner))
+
+
+;; Change contract owner (only current owner can do this)
+(define-public (change-contract-owner (new-owner principal))
+  (begin
+    (asserts! (is-eq tx-sender (var-get contract-owner)) (err u403))
+    (ok (var-set contract-owner new-owner))))
