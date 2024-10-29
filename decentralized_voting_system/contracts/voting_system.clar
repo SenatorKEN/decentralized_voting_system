@@ -32,3 +32,16 @@
         is-active: true })
     (var-set proposal-counter new-id)
     (ok new-id)))
+
+;; Cast a vote
+(define-public (cast-vote (proposal-id uint) (vote bool))
+  (let ((proposal (unwrap! (map-get? proposals { proposal-id: proposal-id }) (err u404))))
+    (asserts! (get is-active proposal) (err u403))
+    (asserts! (is-none (map-get? votes { voter: tx-sender, proposal-id: proposal-id })) (err u401))
+    (map-set votes { voter: tx-sender, proposal-id: proposal-id } { vote: vote })
+    (if vote
+      (map-set proposals { proposal-id: proposal-id }
+        (merge proposal { votes-for: (+ (get votes-for proposal) u1) }))
+      (map-set proposals { proposal-id: proposal-id }
+        (merge proposal { votes-against: (+ (get votes-against proposal) u1) })))
+    (ok true)))
