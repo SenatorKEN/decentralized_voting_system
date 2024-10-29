@@ -45,3 +45,15 @@
       (map-set proposals { proposal-id: proposal-id }
         (merge proposal { votes-against: (+ (get votes-against proposal) u1) })))
     (ok true)))
+
+;; Get proposal details
+(define-read-only (get-proposal (proposal-id uint))
+  (map-get? proposals { proposal-id: proposal-id }))
+
+
+;; Close a proposal
+(define-public (close-proposal (proposal-id uint))
+  (let ((proposal (unwrap! (map-get? proposals { proposal-id: proposal-id }) (err u404))))
+    (asserts! (is-eq tx-sender (var-get contract-owner)) (err u403))
+    (ok (map-set proposals { proposal-id: proposal-id }
+         (merge proposal { is-active: false })))))
