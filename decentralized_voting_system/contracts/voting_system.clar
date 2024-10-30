@@ -82,7 +82,7 @@
 
 (define-private (is-proposal-voting-period-over (proposal-id uint))
   (let ((proposal (unwrap-panic (map-get? proposals { proposal-id: proposal-id }))))
-    (> (- (as-max-len? (var-get block-height) 32) (get block-height proposal)) (* (var-get proposal-voting-period-days) u144)))) ;; Assuming 144 blocks per day
+    (> (- (as-max-len? (var-get block-height) u32) (get block-height proposal)) (* (var-get proposal-voting-period-days) u144)))) ;; Assuming 144 blocks per day
 
 
 (define-public (cast-vote (proposal-id uint) (vote bool))
@@ -97,5 +97,28 @@
   (let ((proposal (unwrap! (map-get? proposals { proposal-id: proposal-id }) (err u404))))
     (asserts! (is-eq tx-sender (var-get contract-owner)) (err u403))
     (asserts! (is-proposal-voting-period-over proposal-id) (err u403))
+    (ok (map-set proposals { proposal-id: proposal-id }
+         (merge proposal { is-active: false })))))
+
+(define-data-var proposal-quorum-percentage uint u25) ;; 25% quorum
+
+(define-private (has-proposal-quorum (proposal-id uint))
+  (let ((proposal (unwrap-panic (map-get? proposals { proposal-id: proposal-id }))))
+    (>= (+ (get votes-for proposal) (get votes-against proposal))
+        (/ (* (var-get proposal-quorum-percentage) (get totalUsers proposal)) u100)))) ;; Assuming totalUsers is stored in the proposal
+
+
+(define-data-var proposal-passing-threshold-percentage uint u60) ;; 60% threshold
+
+(define-private (has-proposal-passed (proposal-id uint))
+  (let ((proposal (unwrap-panic (map-get? proposals { proposal-id: proposal-id }))))
+    (> (/ (* (get votes-for proposal) u100) (+ (get votes-for proposal) (get votes-against proposal)))
+       (var-get proposal-passing-threshold-percentage))))
+
+(define-public (close-proposal (proposal-id uint))
+  (let ((proposal (unwrap! (map-get? proposals { proposal-id: proposal-id }) (err u404))))
+    (asserts! (is-eq tx-sender (var-get contract-owner)) (err u403))
+    (asserts! (is-proposal-voting-period-over proposal-id) (err u403))
+    (asserts! (has-proposal-passed proposal-id) (err u403)) ;; Only allow closing if proposal passed
     (ok (map-set proposals { proposal-id: proposal-id }
          (merge proposal { is-active: false })))))
