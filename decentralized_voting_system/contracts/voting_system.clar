@@ -1,5 +1,3 @@
-;; decentralized_voting_system
-
 
 ;; Define the contract owner
 (define-data-var contract-owner principal tx-sender)
@@ -68,3 +66,14 @@
   (begin
     (asserts! (is-eq tx-sender (var-get contract-owner)) (err u403))
     (ok (var-set contract-owner new-owner))))
+
+
+;; Get Voter's Vote
+(define-read-only (get-voter-vote (proposal-id uint) (voter principal))
+  (map-get? votes { voter: voter, proposal-id: proposal-id }))
+
+;; Helper function to check if proposal is active
+(define-private (is-proposal-active (proposal-id uint))
+(let ((proposal (unwrap-panic (map-get? proposals {proposal-id: proposal-id}))))
+(get is-active proposal)))
+
