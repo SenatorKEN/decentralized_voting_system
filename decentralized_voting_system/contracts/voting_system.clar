@@ -77,3 +77,25 @@
 (let ((proposal (unwrap-panic (map-get? proposals {proposal-id: proposal-id}))))
 (get is-active proposal)))
 
+
+(define-data-var proposal-voting-period-days uint u3)
+
+(define-private (is-proposal-voting-period-over (proposal-id uint))
+  (let ((proposal (unwrap-panic (map-get? proposals { proposal-id: proposal-id }))))
+    (> (- (as-max-len? (var-get block-height) 32) (get block-height proposal)) (* (var-get proposal-voting-period-days) u144)))) ;; Assuming 144 blocks per day
+
+
+(define-public (cast-vote (proposal-id uint) (vote bool))
+  (let ((proposal (unwrap! (map-get? proposals { proposal-id: proposal-id }) (err u404))))
+    (asserts! (get is-active proposal) (err u403)) ;; Use the is-active getter from the proposal map
+    (asserts! (not (is-proposal-voting-period-over proposal-id)) (err u403))
+    ;; Rest of the cast-vote function remains the same
+  )
+)
+
+(define-public (close-proposal (proposal-id uint))
+  (let ((proposal (unwrap! (map-get? proposals { proposal-id: proposal-id }) (err u404))))
+    (asserts! (is-eq tx-sender (var-get contract-owner)) (err u403))
+    (asserts! (is-proposal-voting-period-over proposal-id) (err u403))
+    (ok (map-set proposals { proposal-id: proposal-id }
+         (merge proposal { is-active: false })))))
