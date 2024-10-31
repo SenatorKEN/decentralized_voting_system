@@ -41,6 +41,10 @@
   { commenter: principal, comment: (string-ascii 200) }
 )
 
+(define-map proposal-tags
+  { proposal-id: uint, tag: (string-ascii 20) }
+  { exists: bool }
+)
 
 (define-public (create-proposal (title (string-ascii 50)) (description (string-ascii 500)))
   (let ((proposal-id (var-get next-proposal-id)))
@@ -106,6 +110,22 @@
 (define-read-only (get-proposal-category (proposal-id uint))
   (map-get? proposal-categories { proposal-id: proposal-id })
 )
+
+;; check if proposal is expired
+(define-read-only (is-proposal-expired (proposal-id uint))
+  (let ((deadline (get deadline (default-to { deadline: u0 } (map-get? proposal-deadlines { proposal-id: proposal-id })))))
+    (> block-height deadline)
+  )
+)
+
+;; add-tag-to-proposal function
+(define-public (add-tag-to-proposal (proposal-id uint) (tag (string-ascii 20)))
+  (begin
+    (asserts! (is-some (map-get? proposals { proposal-id: proposal-id })) (err u404))
+    (ok (map-set proposal-tags { proposal-id: proposal-id, tag: tag } { exists: true }))
+  )
+)
+
 
 
 ;; Get contract owner
