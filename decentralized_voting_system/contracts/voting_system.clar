@@ -18,6 +18,16 @@
   }
 )
 
+(define-map proposal-categories
+  { proposal-id: uint }
+  { category: (string-ascii 20) }
+)
+
+(define-map proposal-deadlines
+  { proposal-id: uint }
+  { deadline: uint }
+)
+
 (define-map votes
   { voter: principal, proposal-id: uint }
   { vote: bool })
@@ -25,6 +35,15 @@
 (define-map proposal-creation-heights
   { proposal-id: uint }
   { creation-height: uint }
+)
+(define-map proposal-comments
+  { proposal-id: uint, comment-id: uint }
+  { commenter: principal, comment: (string-ascii 200) }
+)
+
+(define-map proposal-tags
+  { proposal-id: uint, tag: (string-ascii 20) }
+  { exists: bool }
 )
 
 (define-public (create-proposal (title (string-ascii 50)) (description (string-ascii 500)))
@@ -68,6 +87,51 @@
     (ok (map-set proposals { proposal-id: proposal-id }
          (merge proposal { is-active: false })))))
 
+
+;; created dd-category-to-proposal
+(define-public (add-category-to-proposal (proposal-id uint) (category (string-ascii 20)))
+  (begin
+    (asserts! (is-eq tx-sender (var-get contract-owner)) (err u403))
+    (asserts! (is-some (map-get? proposals { proposal-id: proposal-id })) (err u404))
+    (ok (map-set proposal-categories { proposal-id: proposal-id } { category: category }))
+  )
+)
+
+(define-public (set-proposal-deadline (proposal-id uint) (blocks-from-now uint))
+  (begin
+    (asserts! (is-eq tx-sender (var-get contract-owner)) (err u403))
+    (asserts! (is-some (map-get? proposals { proposal-id: proposal-id })) (err u404))
+    (ok (map-set proposal-deadlines
+         { proposal-id: proposal-id }
+         { deadline: (+ block-height blocks-from-now) }))
+  )
+)
+
+(define-read-only (get-proposal-category (proposal-id uint))
+  (map-get? proposal-categories { proposal-id: proposal-id })
+)
+
+;; check if proposal is expired
+(define-read-only (is-proposal-expired (proposal-id uint))
+  (let ((deadline (get deadline (default-to { deadline: u0 } (map-get? proposal-deadlines { proposal-id: proposal-id })))))
+    (> block-height deadline)
+  )
+)
+
+;; add-tag-to-proposal function
+(define-public (add-tag-to-proposal (proposal-id uint) (tag (string-ascii 20)))
+  (begin
+    (asserts! (is-some (map-get? proposals { proposal-id: proposal-id })) (err u404))
+    (ok (map-set proposal-tags { proposal-id: proposal-id, tag: tag } { exists: true }))
+  )
+)
+
+;; checking if proposal has tags
+(define-read-only (proposal-has-tag (proposal-id uint) (tag (string-ascii 20)))
+  (default-to false (get exists (map-get? proposal-tags { proposal-id: proposal-id, tag: tag })))
+)
+
+
 ;; Get contract owner
 (define-read-only (get-contract-owner)
   (var-get contract-owner))
@@ -90,22 +154,6 @@
 (get is-active proposal)))
 
 
-(define-data-var block-height uint u0)
-
-
-(define-data-var proposal-voting-period-days uint u3)
-
-(define-private (is-proposal-voting-period-over (proposal-id uint))
-  (let ((proposal (unwrap-panic (map-get? proposals { proposal-id: proposal-id }))))
-    (> (- (var-get block-height) (get block-height proposal)) (* (var-get proposal-voting-period-days) u144)))) ;; Assuming 144 blocks per day
-
-
-(define-private (check-proposal-voting-period (proposal-id uint))
-  (let (
-    (creation-height (get creation-height (unwrap-panic (map-get? proposal-creation-heights { proposal-id: proposal-id }))))
-    (voting-period-blocks (* (var-get proposal-voting-period-days) u144))
-  )
-    (> (- burn-block-height creation-height) voting-period-blocks)))
 
 (define-data-var next-proposal-id uint u0)
 
