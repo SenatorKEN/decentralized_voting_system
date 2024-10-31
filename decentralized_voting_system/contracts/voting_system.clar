@@ -32,6 +32,11 @@
   { proposal-id: uint }
   { creation-height: uint }
 )
+(define-map proposal-comments
+  { proposal-id: uint, comment-id: uint }
+  { commenter: principal, comment: (string-ascii 200) }
+)
+
 
 (define-public (create-proposal (title (string-ascii 50)) (description (string-ascii 500)))
   (let ((proposal-id (var-get next-proposal-id)))
@@ -74,13 +79,18 @@
     (ok (map-set proposals { proposal-id: proposal-id }
          (merge proposal { is-active: false })))))
 
-;; created add-category-to-proposal
+
+;; created dd-category-to-proposal
 (define-public (add-category-to-proposal (proposal-id uint) (category (string-ascii 20)))
   (begin
     (asserts! (is-eq tx-sender (var-get contract-owner)) (err u403))
     (asserts! (is-some (map-get? proposals { proposal-id: proposal-id })) (err u404))
     (ok (map-set proposal-categories { proposal-id: proposal-id } { category: category }))
   )
+)
+
+(define-read-only (get-proposal-category (proposal-id uint))
+  (map-get? proposal-categories { proposal-id: proposal-id })
 )
 
 
