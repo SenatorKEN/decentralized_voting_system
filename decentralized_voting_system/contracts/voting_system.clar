@@ -23,6 +23,10 @@
   { category: (string-ascii 20) }
 )
 
+(define-map proposal-deadlines
+  { proposal-id: uint }
+  { deadline: uint }
+)
 
 (define-map votes
   { voter: principal, proposal-id: uint }
@@ -86,6 +90,16 @@
     (asserts! (is-eq tx-sender (var-get contract-owner)) (err u403))
     (asserts! (is-some (map-get? proposals { proposal-id: proposal-id })) (err u404))
     (ok (map-set proposal-categories { proposal-id: proposal-id } { category: category }))
+  )
+)
+
+(define-public (set-proposal-deadline (proposal-id uint) (blocks-from-now uint))
+  (begin
+    (asserts! (is-eq tx-sender (var-get contract-owner)) (err u403))
+    (asserts! (is-some (map-get? proposals { proposal-id: proposal-id })) (err u404))
+    (ok (map-set proposal-deadlines
+         { proposal-id: proposal-id }
+         { deadline: (+ block-height blocks-from-now) }))
   )
 )
 
