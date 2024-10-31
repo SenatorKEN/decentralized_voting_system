@@ -90,22 +90,6 @@
 (get is-active proposal)))
 
 
-(define-data-var block-height uint u0)
-
-
-(define-data-var proposal-voting-period-days uint u3)
-
-(define-private (is-proposal-voting-period-over (proposal-id uint))
-  (let ((proposal (unwrap-panic (map-get? proposals { proposal-id: proposal-id }))))
-    (> (- (var-get block-height) (get block-height proposal)) (* (var-get proposal-voting-period-days) u144)))) ;; Assuming 144 blocks per day
-
-
-(define-private (check-proposal-voting-period (proposal-id uint))
-  (let (
-    (creation-height (get creation-height (unwrap-panic (map-get? proposal-creation-heights { proposal-id: proposal-id }))))
-    (voting-period-blocks (* (var-get proposal-voting-period-days) u144))
-  )
-    (> (- burn-block-height creation-height) voting-period-blocks)))
 
 (define-data-var next-proposal-id uint u0)
 
