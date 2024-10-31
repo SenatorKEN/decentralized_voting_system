@@ -126,6 +126,10 @@
   )
 )
 
+;; checking if proposal has tags
+(define-read-only (proposal-has-tag (proposal-id uint) (tag (string-ascii 20)))
+  (default-to false (get exists (map-get? proposal-tags { proposal-id: proposal-id, tag: tag })))
+)
 
 
 ;; Get contract owner
