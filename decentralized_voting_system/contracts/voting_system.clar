@@ -18,6 +18,12 @@
   }
 )
 
+(define-map proposal-categories
+  { proposal-id: uint }
+  { category: (string-ascii 20) }
+)
+
+
 (define-map votes
   { voter: principal, proposal-id: uint }
   { vote: bool })
@@ -67,6 +73,16 @@
     (asserts! (is-eq tx-sender (var-get contract-owner)) (err u403))
     (ok (map-set proposals { proposal-id: proposal-id }
          (merge proposal { is-active: false })))))
+
+;; created add-category-to-proposal
+(define-public (add-category-to-proposal (proposal-id uint) (category (string-ascii 20)))
+  (begin
+    (asserts! (is-eq tx-sender (var-get contract-owner)) (err u403))
+    (asserts! (is-some (map-get? proposals { proposal-id: proposal-id })) (err u404))
+    (ok (map-set proposal-categories { proposal-id: proposal-id } { category: category }))
+  )
+)
+
 
 ;; Get contract owner
 (define-read-only (get-contract-owner)
